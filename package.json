@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "description": "Scheduled email sequences for e-commerce — multi-tenant SaaS",
-  "engines": { "node": "18.x" },
+  "engines": { "node": "20.x" },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.55.0",
     "firebase-admin": "^12.0.0",
