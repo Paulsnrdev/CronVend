@@ -20,9 +20,19 @@ function htmlToText(html) {
     .trim();
 }
 
-async function sendEmail({ to, subject, html }) {
+// tags let the Resend delivery webhook route events back to the right
+// tenant + order without scanning Firestore. Max 50 chars per value.
+function buildTags({ tenantId, orderId, emailType }) {
+  const tags = [];
+  if (tenantId)  tags.push({ name: 'tenantId',  value: String(tenantId).slice(0, 50) });
+  if (orderId)   tags.push({ name: 'orderId',   value: String(orderId).slice(0, 50) });
+  if (emailType) tags.push({ name: 'emailType', value: String(emailType).slice(0, 50) });
+  return tags;
+}
+
+async function sendEmail({ to, subject, html, from, tenantId, orderId, emailType }) {
   if (DRY_RUN) {
-    console.log('[DRY_RUN] sendEmail', JSON.stringify({ to, subject }));
+    console.log('[DRY_RUN] sendEmail', JSON.stringify({ to, subject, from, tenantId, orderId, emailType }));
     return { id: 'dry-run-' + Date.now() };
   }
 
@@ -33,12 +43,13 @@ async function sendEmail({ to, subject, html }) {
     method: 'POST',
     headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      from: FROM_ADDRESS,
+      from:     from || FROM_ADDRESS,
       reply_to: REPLY_TO,
-      to: Array.isArray(to) ? to : [to],
+      to:       Array.isArray(to) ? to : [to],
       subject,
       html,
-      text: htmlToText(html),
+      text:     htmlToText(html),
+      tags:     buildTags({ tenantId, orderId, emailType }),
     }),
   });
 
@@ -50,4 +61,4 @@ async function sendEmail({ to, subject, html }) {
   return res.json();
 }
 
-module.exports = { sendEmail };
+module.exports = { sendEmail, buildTags };

@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CronVend — Dashboard</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:      #0f1117;
+    --surface: #1a1d27;
+    --border:  #2a2d3a;
+    --accent:  #6c63ff;
+    --accent2: #00d4aa;
+    --text:    #e2e8f0;
+    --muted:   #8892a4;
+    --danger:  #f56565;
+    --success: #48bb78;
+    --warn:    #ed8936;
+    --radius:  12px;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px 16px;
+  }
+
+  .wrap { max-width: 900px; margin: 0 auto; }
+
+  /* ── Header ── */
+  header { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; }
+  .logo { font-size: 22px; font-weight: 700; letter-spacing: -.5px; }
+  .logo span { color: var(--accent); }
+  .badge {
+    background: var(--accent);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+  }
+
+  /* ── Auth form ── */
+  #auth-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 32px;
+    max-width: 460px;
+    margin: 60px auto;
+  }
+  #auth-card h2 { margin-bottom: 8px; }
+  #auth-card p  { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  input[type="text"] {
+    width: 100%; padding: 10px 14px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); font-size: 14px;
+    font-family: monospace;
+    outline: none; transition: border-color .2s;
+  }
+  input[type="text"]:focus { border-color: var(--accent); }
+  button {
+    margin-top: 16px; width: 100%; padding: 11px;
+    background: var(--accent); color: #fff; font-size: 14px; font-weight: 600;
+    border: none; border-radius: 8px; cursor: pointer; transition: opacity .2s;
+  }
+  button:hover { opacity: .85; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .err { color: var(--danger); font-size: 13px; margin-top: 10px; }
+
+  /* ── Stats grid ── */
+  #dashboard { display: none; }
+  .section-title {
+    font-size: 12px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--muted); margin: 28px 0 12px;
+  }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px 18px;
+  }
+  .card .label { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+  .card .value { font-size: 28px; font-weight: 700; }
+  .card .value.green  { color: var(--success); }
+  .card .value.purple { color: var(--accent); }
+  .card .value.teal   { color: var(--accent2); }
+  .card .value.warn   { color: var(--warn); }
+
+  /* ── Email breakdown table ── */
+  .table-wrap { overflow-x: auto; }
+  table {
+    width: 100%; border-collapse: collapse;
+    background: var(--surface); border-radius: var(--radius);
+    overflow: hidden; border: 1px solid var(--border);
+    font-size: 14px;
+  }
+  th, td { padding: 12px 16px; text-align: left; }
+  th { background: var(--border); color: var(--muted); font-size: 12px;
+       font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
+  tr:not(:last-child) td { border-bottom: 1px solid var(--border); }
+
+  /* ── Toolbar ── */
+  .toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+  .toolbar .right { display: flex; gap: 10px; }
+  .btn-sm {
+    padding: 7px 14px; font-size: 13px; font-weight: 600;
+    border-radius: 8px; cursor: pointer; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text); width: auto; margin: 0;
+    transition: background .15s;
+  }
+  .btn-sm:hover { background: var(--border); }
+  .btn-sm.danger { border-color: var(--danger); color: var(--danger); }
+
+  /* ── Last refresh ── */
+  #last-refresh { font-size: 12px; color: var(--muted); }
+
+  .spinner { display: inline-block; width: 14px; height: 14px;
+    border: 2px solid var(--muted); border-top-color: var(--accent);
+    border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">Cron<span>Vend</span></div>
+    <div class="badge">Dashboard</div>
+  </header>
+
+  <!-- Auth form -->
+  <div id="auth-card">
+    <h2>Sign in</h2>
+    <p>Enter your CronVend API key to view your dashboard.</p>
+    <label for="apikey">API Key</label>
+    <input type="text" id="apikey" placeholder="cv_live_..." autocomplete="off">
+    <button id="login-btn" onclick="login()">View Dashboard</button>
+    <div class="err" id="login-err"></div>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="dashboard">
+    <div class="toolbar">
+      <div>
+        <span id="last-refresh"></span>
+      </div>
+      <div class="right">
+        <button class="btn-sm" onclick="refresh()">↻ Refresh</button>
+        <button class="btn-sm danger" onclick="logout()">Sign out</button>
+      </div>
+    </div>
+
+    <div class="section-title">Overview</div>
+    <div class="cards">
+      <div class="card"><div class="label">Total Orders</div><div class="value purple" id="s-total">—</div></div>
+      <div class="card"><div class="label">Awaiting Payment</div><div class="value warn" id="s-awaiting">—</div></div>
+      <div class="card"><div class="label">Recovered Orders</div><div class="value green" id="s-recovered">—</div></div>
+      <div class="card"><div class="label">Active Follow-ups</div><div class="value teal" id="s-followups">—</div></div>
+    </div>
+
+    <div class="section-title">Emails</div>
+    <div class="cards">
+      <div class="card"><div class="label">Total Sent</div><div class="value purple" id="s-sent">—</div></div>
+      <div class="card"><div class="label">Promo Codes Issued</div><div class="value" id="s-promos">—</div></div>
+      <div class="card"><div class="label">Promo Codes Redeemed</div><div class="value green" id="s-redeemed">—</div></div>
+    </div>
+
+    <div class="section-title">Email Breakdown</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Type</th><th>Count</th></tr></thead>
+        <tbody id="bytype-rows"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API = '/api/dashboard/stats';
+  let apiKey = sessionStorage.getItem('cv_key') || '';
+
+  if (apiKey) showDashboard(true);
+
+  async function login() {
+    const key = document.getElementById('apikey').value.trim();
+    if (!key) return;
+    const btn = document.getElementById('login-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Loading…';
+    document.getElementById('login-err').textContent = '';
+    try {
+      const data = await fetchStats(key);
+      apiKey = key;
+      sessionStorage.setItem('cv_key', key);
+      renderStats(data);
+      document.getElementById('auth-card').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+    } catch (e) {
+      document.getElementById('login-err').textContent = e.message;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'View Dashboard';
+    }
+  }
+
+  async function showDashboard(silent) {
+    try {
+      const data = await fetchStats(apiKey);
+      renderStats(data);
+      document.getElementById('auth-card').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+    } catch (e) {
+      if (!silent) alert(e.message);
+      logout();
+    }
+  }
+
+  async function refresh() { await showDashboard(false); }
+
+  function logout() {
+    sessionStorage.removeItem('cv_key');
+    apiKey = '';
+    document.getElementById('auth-card').style.display = 'block';
+    document.getElementById('dashboard').style.display = 'none';
+    document.getElementById('apikey').value = '';
+  }
+
+  async function fetchStats(key) {
+    const r = await fetch(API, { headers: { 'x-api-key': key } });
+    if (r.status === 401) throw new Error('Invalid API key.');
+    if (!r.ok) throw new Error('Server error: ' + r.status);
+    const body = await r.json();
+    if (!body.ok) throw new Error(body.error || 'Unknown error');
+    return body.stats;
+  }
+
+  function renderStats(s) {
+    document.getElementById('s-total').textContent     = fmt(s.totalOrders);
+    document.getElementById('s-awaiting').textContent  = fmt(s.awaitingPayment);
+    document.getElementById('s-recovered').textContent = fmt(s.recoveredOrders);
+    document.getElementById('s-followups').textContent = fmt(s.activeFollowUps);
+    document.getElementById('s-sent').textContent      = fmt(s.emailsSent);
+    document.getElementById('s-promos').textContent    = fmt(s.promoCodesIssued);
+    document.getElementById('s-redeemed').textContent  = fmt(s.promoCodesRedeemed);
+
+    const tbody = document.getElementById('bytype-rows');
+    tbody.innerHTML = '';
+    const entries = Object.entries(s.byType || {}).sort((a, b) => b[1] - a[1]);
+    if (!entries.length) {
+      tbody.innerHTML = '<tr><td colspan="2" style="color:var(--muted)">No emails sent yet</td></tr>';
+    } else {
+      for (const [type, count] of entries) {
+        tbody.innerHTML += `<tr><td>${type}</td><td>${fmt(count)}</td></tr>`;
+      }
+    }
+
+    document.getElementById('last-refresh').textContent =
+      'Last updated: ' + new Date().toLocaleTimeString();
+  }
+
+  function fmt(n) { return (n ?? 0).toLocaleString(); }
+
+  document.getElementById('apikey').addEventListener('keydown', e => {
+    if (e.key === 'Enter') login();
+  });
+</script>
+</body>
+</html>

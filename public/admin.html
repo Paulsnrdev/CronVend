@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CronVend — Admin</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:      #0f1117;
+    --surface: #1a1d27;
+    --border:  #2a2d3a;
+    --accent:  #6c63ff;
+    --text:    #e2e8f0;
+    --muted:   #8892a4;
+    --danger:  #f56565;
+    --success: #48bb78;
+    --warn:    #ed8936;
+    --radius:  12px;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh; padding: 24px 16px;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; }
+  header { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; }
+  .logo { font-size: 22px; font-weight: 700; letter-spacing: -.5px; }
+  .logo span { color: var(--accent); }
+  .badge {
+    background: var(--danger); color: #fff; font-size: 11px; font-weight: 600;
+    padding: 2px 8px; border-radius: 20px; text-transform: uppercase; letter-spacing: .5px;
+  }
+
+  /* ── Auth ── */
+  #auth-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 32px;
+    max-width: 420px; margin: 60px auto;
+  }
+  #auth-card h2 { margin-bottom: 8px; }
+  #auth-card p  { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  input[type="text"], input[type="password"], select {
+    width: 100%; padding: 10px 14px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); font-size: 14px;
+    font-family: inherit; outline: none; transition: border-color .2s;
+  }
+  input[type="text"]:focus, input[type="password"]:focus, select:focus { border-color: var(--accent); }
+  .btn {
+    padding: 10px 18px; font-size: 14px; font-weight: 600;
+    border-radius: 8px; cursor: pointer; border: none; transition: opacity .2s;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { opacity: .85; }
+  .btn-danger  { background: var(--danger); color: #fff; }
+  .btn-danger:hover { opacity: .85; }
+  .btn-sm {
+    padding: 6px 12px; font-size: 12px; font-weight: 600;
+    border-radius: 6px; cursor: pointer; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text); transition: background .15s;
+  }
+  .btn-sm:hover { background: var(--border); }
+  .btn-sm.danger { border-color: var(--danger); color: var(--danger); }
+  .btn-full { display: block; width: 100%; margin-top: 16px; }
+  .err  { color: var(--danger);  font-size: 13px; margin-top: 10px; }
+  .ok   { color: var(--success); font-size: 13px; margin-top: 10px; }
+
+  /* ── Layout ── */
+  #admin { display: none; }
+  .toolbar {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 12px; margin-bottom: 20px;
+  }
+  .section-title {
+    font-size: 12px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--muted); margin: 28px 0 12px;
+  }
+
+  /* ── Tenant table ── */
+  .table-wrap { overflow-x: auto; }
+  table {
+    width: 100%; border-collapse: collapse;
+    background: var(--surface); border-radius: var(--radius);
+    overflow: hidden; border: 1px solid var(--border); font-size: 14px;
+  }
+  th, td { padding: 12px 16px; text-align: left; }
+  th { background: var(--border); color: var(--muted); font-size: 12px;
+       font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
+  tr:not(:last-child) td { border-bottom: 1px solid var(--border); }
+  .pill {
+    display: inline-block; padding: 2px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+  }
+  .pill.active    { background: #1a3a2a; color: var(--success); }
+  .pill.cancelled { background: #3a1a1a; color: var(--danger); }
+  .pill.suspended { background: #3a2a1a; color: var(--warn); }
+  .pill.none      { background: var(--border); color: var(--muted); }
+  .pill.mini   { background: #1e1e3a; color: #9999ff; }
+  .pill.pro    { background: #1a2a3a; color: #66aaff; }
+  .pill.max    { background: #1a3a3a; color: var(--success); }
+  .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  /* ── Register form ── */
+  .panel {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 24px; margin-bottom: 20px;
+  }
+  .panel h3 { margin-bottom: 16px; font-size: 16px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .form-row.single { grid-template-columns: 1fr; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .key-reveal {
+    background: var(--bg); border: 1px solid var(--success); border-radius: 8px;
+    padding: 12px 14px; font-family: monospace; font-size: 13px;
+    color: var(--success); word-break: break-all; margin-top: 12px;
+  }
+
+  .spinner { display: inline-block; width: 12px; height: 12px;
+    border: 2px solid rgba(255,255,255,.3); border-top-color: #fff;
+    border-radius: 50%; animation: spin .7s linear infinite;
+    vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">Cron<span>Vend</span></div>
+    <div class="badge">Admin</div>
+  </header>
+
+  <!-- Auth -->
+  <div id="auth-card">
+    <h2>Admin access</h2>
+    <p>Enter your admin secret to manage tenants.</p>
+    <label for="admin-key">Admin Secret</label>
+    <input type="password" id="admin-key" placeholder="Your ADMIN_SECRET">
+    <button class="btn btn-primary btn-full" onclick="adminLogin()">Sign In</button>
+    <div class="err" id="auth-err"></div>
+  </div>
+
+  <!-- Admin panel -->
+  <div id="admin">
+    <div class="toolbar">
+      <span id="tenant-count" style="color:var(--muted);font-size:13px;"></span>
+      <div style="display:flex;gap:10px;">
+        <button class="btn-sm" onclick="loadTenants()">↻ Refresh</button>
+        <button class="btn-sm danger" onclick="adminLogout()">Sign out</button>
+      </div>
+    </div>
+
+    <!-- Register new tenant -->
+    <div class="section-title">Register new tenant</div>
+    <div class="panel">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Store name</label>
+          <input type="text" id="r-name" placeholder="Acme Store">
+        </div>
+        <div class="form-group">
+          <label>Store URL</label>
+          <input type="text" id="r-url" placeholder="https://acmestore.com">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Tier</label>
+          <select id="r-tier">
+            <option value="mini">Mini — $7/mo</option>
+            <option value="pro" selected>Pro — $19/mo</option>
+            <option value="max">Max — $43/mo</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Billing email (for subscribe link)</label>
+          <input type="text" id="r-email" placeholder="client@email.com">
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <button class="btn btn-primary" id="reg-btn" onclick="registerTenant()">Register tenant</button>
+        <button class="btn btn-primary" id="sub-btn" onclick="generateSubscribeLink()" style="background:#00d4aa;display:none;">Generate subscribe link</button>
+      </div>
+      <div class="err" id="reg-err"></div>
+      <div id="reg-result"></div>
+    </div>
+
+    <!-- Tenant list -->
+    <div class="section-title">Tenants</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Tenant ID</th>
+            <th>Store</th>
+            <th>Tier</th>
+            <th>Subscription</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="tenant-rows">
+          <tr><td colspan="5" style="color:var(--muted)">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  let adminKey = sessionStorage.getItem('cv_admin') || '';
+  let lastRegistered = null; // { tenantId, tier, email }
+
+  if (adminKey) showAdmin();
+
+  function adminLogin() {
+    const k = document.getElementById('admin-key').value.trim();
+    if (!k) return;
+    adminKey = k;
+    sessionStorage.setItem('cv_admin', k);
+    document.getElementById('auth-card').style.display = 'none';
+    showAdmin();
+  }
+
+  function adminLogout() {
+    sessionStorage.removeItem('cv_admin');
+    adminKey = '';
+    location.reload();
+  }
+
+  async function showAdmin() {
+    document.getElementById('auth-card').style.display = 'none';
+    document.getElementById('admin').style.display = 'block';
+    await loadTenants();
+  }
+
+  // ── Tenant list ──────────────────────────────────────────────────────────
+  async function loadTenants() {
+    const tbody = document.getElementById('tenant-rows');
+    tbody.innerHTML = '<tr><td colspan="5" style="color:var(--muted)"><span class="spinner"></span>Loading…</td></tr>';
+    try {
+      const r = await fetch('/api/admin/tenants', {
+        headers: { 'x-admin-key': adminKey }
+      });
+      if (r.status === 401) { adminLogout(); return; }
+      const body = await r.json();
+      renderTenants(body.tenants || []);
+    } catch (e) {
+      tbody.innerHTML = `<tr><td colspan="5" style="color:var(--danger)">${e.message}</td></tr>`;
+    }
+  }
+
+  function renderTenants(tenants) {
+    const tbody = document.getElementById('tenant-rows');
+    document.getElementById('tenant-count').textContent = tenants.length + ' tenant' + (tenants.length !== 1 ? 's' : '');
+    if (!tenants.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="color:var(--muted)">No tenants registered yet.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = tenants.map(t => {
+      const sub    = t.subscriptionStatus || 'none';
+      const subCls = ['active','cancelled','suspended'].includes(sub) ? sub : 'none';
+      const tierCls = ['mini','pro','max'].includes(t.tier) ? t.tier : 'mini';
+      return `
+        <tr>
+          <td style="font-family:monospace;font-size:12px">${t.tenantId}</td>
+          <td>${esc(t.storeName || '—')}<br><span style="color:var(--muted);font-size:12px">${esc(t.billingEmail || '')}</span></td>
+          <td><span class="pill ${tierCls}">${t.tier || 'mini'}</span></td>
+          <td><span class="pill ${subCls}">${sub}</span></td>
+          <td>
+            <div class="actions">
+              <button class="btn-sm" onclick="genSubLink('${t.tenantId}','${t.tier || 'mini'}','${esc(t.billingEmail||'')}')">Subscribe link</button>
+              <button class="btn-sm danger" onclick="deleteTenant('${t.tenantId}','${esc(t.storeName||t.tenantId)}')">Delete</button>
+            </div>
+          </td>
+        </tr>`;
+    }).join('');
+  }
+
+  // ── Register ─────────────────────────────────────────────────────────────
+  async function registerTenant() {
+    const name  = document.getElementById('r-name').value.trim();
+    const url   = document.getElementById('r-url').value.trim();
+    const tier  = document.getElementById('r-tier').value;
+    const email = document.getElementById('r-email').value.trim();
+    const errEl = document.getElementById('reg-err');
+    const resEl = document.getElementById('reg-result');
+    errEl.textContent = '';
+    resEl.innerHTML   = '';
+    if (!name) { errEl.textContent = 'Store name required.'; return; }
+
+    const btn = document.getElementById('reg-btn');
+    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Registering…';
+
+    try {
+      const r = await fetch('/api/tenants/register', {
+        method: 'POST',
+        headers: { 'x-admin-key': adminKey, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storeName: name, storeUrl: url, tier }),
+      });
+      const body = await r.json();
+      if (!r.ok) { errEl.textContent = body.error || 'Error'; return; }
+
+      lastRegistered = { tenantId: body.tenantId, tier, email };
+
+      resEl.innerHTML = `
+        <div class="key-reveal">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px">TENANT ID</div>
+          <div>${body.tenantId}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:10px;margin-bottom:6px">API KEY — save this, shown once only</div>
+          <div>${body.apiKey}</div>
+        </div>`;
+
+      if (email) {
+        document.getElementById('sub-btn').style.display = 'inline-block';
+      }
+
+      await loadTenants();
+    } catch (e) {
+      errEl.textContent = e.message;
+    } finally {
+      btn.disabled = false; btn.textContent = 'Register tenant';
+    }
+  }
+
+  async function generateSubscribeLink() {
+    if (!lastRegistered) return;
+    const { tenantId, tier, email } = lastRegistered;
+    const name = document.getElementById('r-name').value.trim();
+    await genSubLink(tenantId, tier, email, name);
+  }
+
+  async function genSubLink(tenantId, tier, email, name) {
+    if (!email) { email = prompt('Billing email for ' + tenantId + ':'); }
+    if (!email) return;
+    try {
+      const r = await fetch('/api/billing/subscribe', {
+        method: 'POST',
+        headers: { 'x-admin-key': adminKey, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tenantId, tier, email, name: name || '' }),
+      });
+      const body = await r.json();
+      if (!r.ok) { alert('Error: ' + (body.error || r.status)); return; }
+      const link = body.link;
+      const copied = await navigator.clipboard.writeText(link).then(() => true).catch(() => false);
+      alert((copied ? 'Copied to clipboard!\n\n' : '') + 'Checkout link:\n' + link);
+    } catch (e) {
+      alert('Error: ' + e.message);
+    }
+  }
+
+  // ── Delete tenant ─────────────────────────────────────────────────────────
+  async function deleteTenant(tenantId, name) {
+    if (!confirm(`Delete ALL data for "${name}" (${tenantId})?\n\nThis is permanent and cannot be undone.`)) return;
+    try {
+      const r = await fetch('/api/tenants/data', {
+        method: 'DELETE',
+        headers: { 'x-admin-key': adminKey, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tenantId }),
+      });
+      const body = await r.json();
+      if (!r.ok) { alert('Error: ' + (body.error || r.status)); return; }
+      await loadTenants();
+    } catch (e) {
+      alert('Error: ' + e.message);
+    }
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  document.getElementById('admin-key')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') adminLogin();
+  });
+</script>
+</body>
+</html>

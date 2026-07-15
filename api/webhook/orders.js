@@ -1,7 +1,13 @@
 'use strict';
 
-const { db }            = require('../_lib/firebase-admin');
-const { requireTenant } = require('../_lib/auth');
+const crypto                = require('crypto');
+const { db }                = require('../_lib/firebase-admin');
+const { requireTenant }     = require('../_lib/auth');
+const { checkRateLimit }    = require('../_lib/rate-limit');
+
+function generateUnsubscribeToken() {
+  return crypto.randomBytes(32).toString('hex');
+}
 
 const ALLOWED_EVENTS = new Set([
   'order.created',
@@ -15,6 +21,16 @@ module.exports = async function handler(req, res) {
 
   const tenantId = await requireTenant(req, res);
   if (!tenantId) return;
+
+  // Fetch tenant to get tier for rate limiting
+  const tenantSnap = await db.collection('tenants').doc(tenantId).get();
+  const tier = (tenantSnap.data() || {}).tier || 'mini';
+
+  const { allowed, reason, retryAfterSeconds } = await checkRateLimit(tenantId, tier);
+  if (!allowed) {
+    res.setHeader('Retry-After', String(retryAfterSeconds));
+    return res.status(429).json({ error: reason });
+  }
 
   const { event, order } = req.body || {};
 
@@ -48,16 +64,34 @@ module.exports = async function handler(req, res) {
   if (event === 'order.delivered') {
     await orderRef.update({ orderStatus: 'delivered' });
 
-    const fuRef = tenantBase.collection('followUps').doc(order.orderId);
-    await fuRef.set({
-      email:        order.customerEmail,
-      customerName: order.customerName || '',
-      orderRef:     order.orderRef     || order.orderId,
-      items:        order.items        || [],
-      deliveredAt:  order.deliveredAt  || new Date().toISOString(),
-      optedOut:     false,
-      day3: false, day6: false, day8: false,
-    }, { merge: true });
+    // Idempotency guard: if a followUp doc already exists this is a duplicate
+    // delivery event (retry / double-fire). Skip re-enrollment to avoid
+    // overwriting the unsubscribeToken and orphaning the old one.
+    const fuRef  = tenantBase.collection('followUps').doc(order.orderId);
+    const fuSnap = await fuRef.get();
+
+    if (!fuSnap.exists) {
+      const token = generateUnsubscribeToken();
+
+      await fuRef.set({
+        email:            order.customerEmail,
+        customerName:     order.customerName || '',
+        orderRef:         order.orderRef     || order.orderId,
+        items:            order.items        || [],
+        deliveredAt:      order.deliveredAt  || new Date().toISOString(),
+        unsubscribeToken: token,
+        optedOut:         false,
+        optedOutAt:       null,
+        day3: false, day6: false, day8: false,
+      });
+
+      // Top-level lookup so /api/unsubscribe can resolve token → tenant without a full scan
+      await db.collection('unsubscribeTokens').doc(token).set({
+        tenantId,
+        followUpId: order.orderId,
+        createdAt:  new Date().toISOString(),
+      });
+    }
   }
 
   return res.status(200).json({ ok: true, tenantId, orderId: order.orderId, event });

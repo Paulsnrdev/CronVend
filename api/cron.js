@@ -1,22 +1,14 @@
 'use strict';
 
-const { db }                      = require('./_lib/firebase-admin');
-const { sendEmail }               = require('./_lib/resend');
-const { createPromo }             = require('./_lib/promo');
-const { getUpsellRecommendations} = require('./_lib/claude');
-const { awaitingPaymentHtml }     = require('./_lib/templates/awaiting-payment');
-const { satisfactionHtml, reviewRequestHtml } = require('./_lib/templates/delivery-followup');
-const { upsellHtml }              = require('./_lib/templates/upsell');
+const { db } = require('./_lib/firebase-admin');
 
-const AWAITING_STAGES = [
-  { key: 'h1',  ms:  1 * 3600 * 1000 },
-  { key: 'h12', ms: 12 * 3600 * 1000 },
-  { key: 'h24', ms: 24 * 3600 * 1000 },
-];
-
-const THREE_DAYS = 3 * 86400 * 1000;
-const SIX_DAYS   = 6 * 86400 * 1000;
-const EIGHT_DAYS = 8 * 86400 * 1000;
+// Called hourly by GitHub Actions.
+// Fetches all tenant IDs (no field data — cheap) then fans out one HTTP
+// request per tenant to /api/cron/tenant, which runs in its own Vercel
+// function invocation with its own 60-second timeout budget.
+// Wall-clock time here is dominated by the single slowest tenant, not
+// the sum of all tenants, so this stays well within the 60-second limit
+// regardless of how many clients are on the platform.
 
 module.exports = async function handler(req, res) {
   const secret = process.env.CRON_SECRET;
@@ -24,158 +16,54 @@ module.exports = async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  const now     = Date.now();
-  const summary = { tenants: 0, emails: 0, errors: [] };
+  const baseUrl = process.env.SITE_URL;
+  if (!baseUrl) {
+    return res.status(500).json({ error: 'SITE_URL env var required for cron fan-out' });
+  }
 
-  const tenantsSnap = await db.collection('tenants').get();
+  // .select() fetches doc IDs only — no field reads, minimal Firestore cost.
+  const tenantsSnap = await db.collection('tenants').select().get();
+  const tenantIds   = tenantsSnap.docs.map(d => d.id);
 
-  await Promise.all(tenantsSnap.docs.map(async tenantDoc => {
-    const tenantId = tenantDoc.id;
-    const tenant   = tenantDoc.data();
-    summary.tenants++;
+  if (!tenantIds.length) {
+    return res.status(200).json({ ok: true, tenants: 0, emails: 0 });
+  }
 
-    try {
-      const sent = await processTenant({ tenantId, tenant, now });
-      summary.emails += sent;
-    } catch (err) {
-      console.error('[cron] tenant error', tenantId, err.message);
-      summary.errors.push({ tenantId, error: err.message });
+  // Fire one request per tenant. Each runs in its own isolated function
+  // invocation. A 55-second abort per request leaves headroom before
+  // Vercel's 60-second hard limit on the orchestrator itself.
+  const results = await Promise.allSettled(
+    tenantIds.map(tenantId => {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 55_000);
+      return fetch(`${baseUrl}/api/cron/tenant`, {
+        method:  'POST',
+        headers: {
+          'Authorization': 'Bearer ' + secret,
+          'Content-Type':  'application/json',
+        },
+        body:   JSON.stringify({ tenantId }),
+        signal: ctrl.signal,
+      })
+        .then(r => r.json())
+        .finally(() => clearTimeout(timer));
+    })
+  );
+
+  const summary = { tenants: tenantIds.length, emails: 0, cappedTenants: 0, errors: [] };
+
+  results.forEach((result, i) => {
+    if (result.status === 'fulfilled' && result.value?.ok) {
+      summary.emails       += result.value.sent  || 0;
+      if (result.value.capped) summary.cappedTenants++;
+    } else {
+      const reason = result.status === 'rejected'
+        ? result.reason?.message
+        : (result.value?.error || 'unknown');
+      console.error('[cron] tenant failed', tenantIds[i], reason);
+      summary.errors.push({ tenantId: tenantIds[i], error: reason });
     }
-  }));
+  });
 
   return res.status(200).json({ ok: true, ...summary });
 };
-
-async function processTenant({ tenantId, tenant, now }) {
-  const [ap, fu] = await Promise.all([
-    runAwaitingPayment({ tenantId, tenant, now }),
-    runFollowUps({ tenantId, tenant, now }),
-  ]);
-  return ap + fu;
-}
-
-// ── Awaiting-payment reminders ────────────────────────────────────────────────
-
-async function runAwaitingPayment({ tenantId, tenant, now }) {
-  const storeName = tenant.storeName || 'Our Store';
-  const storeUrl  = tenant.storeUrl  || '#';
-  let sent = 0;
-
-  const snap = await db.collection('tenants').doc(tenantId)
-    .collection('orders')
-    .where('orderStatus', '==', 'awaiting_payment')
-    .get();
-
-  await Promise.all(snap.docs.map(async doc => {
-    const order = doc.data();
-    const age   = now - new Date(order.createdAt).getTime();
-    const done  = order.awaitingReminders || {};
-
-    for (const stage of AWAITING_STAGES) {
-      if (age < stage.ms || done[stage.key]) continue;
-
-      const { subject, html } = awaitingPaymentHtml({
-        customerName: order.customerName,
-        orderRef:     order.orderRef,
-        totalAmount:  order.totalAmount,
-        storeUrl,
-        storeName,
-        stage:        stage.key,
-      });
-
-      await sendEmail({ to: order.customerEmail, subject, html });
-      await doc.ref.update({ [`awaitingReminders.${stage.key}`]: true });
-      await logEvent(tenantId, { orderId: doc.id, type: `awaiting_${stage.key}`, metadata: { email: order.customerEmail } });
-      sent++;
-      break; // one stage per hourly run
-    }
-  }));
-
-  return sent;
-}
-
-// ── Post-delivery follow-up sequences ────────────────────────────────────────
-
-async function runFollowUps({ tenantId, tenant, now }) {
-  const storeName = tenant.storeName || 'Our Store';
-  const storeUrl  = tenant.storeUrl  || '#';
-  const reviewUrl = tenant.reviewUrl || storeUrl;
-  let sent = 0;
-
-  const snap = await db.collection('tenants').doc(tenantId)
-    .collection('followUps')
-    .where('optedOut', '==', false)
-    .get();
-
-  await Promise.all(snap.docs.map(async doc => {
-    const fu  = doc.data();
-    const age = now - new Date(fu.deliveredAt).getTime();
-
-    // day 3 — satisfaction check-in
-    if (age >= THREE_DAYS && !fu.day3) {
-      const { subject, html } = satisfactionHtml({
-        customerName: fu.customerName,
-        orderRef:     fu.orderRef || doc.id,
-        storeName,
-        reviewUrl,
-      });
-      await sendEmail({ to: fu.email, subject, html });
-      await doc.ref.update({ day3: true });
-      await logEvent(tenantId, { orderId: doc.id, type: 'followup_day3' });
-      sent++;
-      return;
-    }
-
-    // day 6 — review request
-    if (age >= SIX_DAYS && fu.day3 && !fu.day6) {
-      const { subject, html } = reviewRequestHtml({
-        customerName: fu.customerName,
-        orderRef:     fu.orderRef || doc.id,
-        storeName,
-        reviewUrl,
-      });
-      await sendEmail({ to: fu.email, subject, html });
-      await doc.ref.update({ day6: true });
-      await logEvent(tenantId, { orderId: doc.id, type: 'followup_day6' });
-      sent++;
-      return;
-    }
-
-    // day 8 — AI upsell + promo code
-    if (age >= EIGHT_DAYS && fu.day6 && !fu.day8) {
-      const [promo, aiParagraph] = await Promise.all([
-        createPromo({ tenantId, followUpId: doc.id }),
-        getUpsellRecommendations({ customerName: fu.customerName, previousItems: fu.items || [], storeName }),
-      ]);
-
-      const { subject, html } = upsellHtml({
-        customerName: fu.customerName,
-        storeName,
-        storeUrl,
-        promoCode:   promo.code,
-        discountPct: promo.discountPct,
-        expiresAt:   promo.expiresAt,
-        aiParagraph,
-      });
-
-      await sendEmail({ to: fu.email, subject, html });
-      await doc.ref.update({ day8: true });
-      await logEvent(tenantId, { orderId: doc.id, type: 'followup_day8', metadata: { promoCode: promo.code } });
-      sent++;
-    }
-  }));
-
-  return sent;
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-async function logEvent(tenantId, { orderId, type, metadata }) {
-  await db.collection('tenants').doc(tenantId)
-    .collection('events').add({
-      orderId,
-      type,
-      metadata: metadata || {},
-      createdAt: new Date().toISOString(),
-    });
-}

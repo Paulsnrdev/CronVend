@@ -1,6 +1,6 @@
 'use strict';
 
-function satisfactionHtml({ customerName, orderRef, storeName, reviewUrl }) {
+function satisfactionHtml({ customerName, orderRef, storeName, reviewUrl, unsubscribeUrl }) {
   return {
     subject: `How did we do? – Order ${orderRef}`,
     html: `<!DOCTYPE html>
@@ -24,7 +24,8 @@ function satisfactionHtml({ customerName, orderRef, storeName, reviewUrl }) {
             Share Your Experience
           </a>
           <p style="margin:24px 0 0;color:#999;font-size:13px;line-height:1.5">
-            Any issues? Reply to this email and we'll make it right.
+            Any issues? Reply to this email and we'll make it right.<br>
+            <a href="${unsubscribeUrl}" style="color:#bbb;font-size:12px">Unsubscribe from follow-up emails</a>
           </p>
         </td></tr>
       </table>
@@ -35,7 +36,7 @@ function satisfactionHtml({ customerName, orderRef, storeName, reviewUrl }) {
   };
 }
 
-function reviewRequestHtml({ customerName, orderRef, storeName, reviewUrl }) {
+function reviewRequestHtml({ customerName, orderRef, storeName, reviewUrl, unsubscribeUrl }) {
   return {
     subject: `A quick favour – your review of order ${orderRef}`,
     html: `<!DOCTYPE html>
@@ -58,7 +59,10 @@ function reviewRequestHtml({ customerName, orderRef, storeName, reviewUrl }) {
           <a href="${reviewUrl}" style="display:inline-block;background:#111;color:#fff;padding:14px 28px;border-radius:6px;text-decoration:none;font-weight:600;font-size:15px">
             Write a Review
           </a>
-          <p style="margin:24px 0 0;color:#999;font-size:13px">Takes less than 2 minutes. Thank you!</p>
+          <p style="margin:24px 0 0;color:#999;font-size:13px">
+            Takes less than 2 minutes. Thank you!<br>
+            <a href="${unsubscribeUrl}" style="color:#bbb;font-size:12px">Unsubscribe from follow-up emails</a>
+          </p>
         </td></tr>
       </table>
     </td></tr>

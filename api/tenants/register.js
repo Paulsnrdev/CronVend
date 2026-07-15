@@ -17,9 +17,11 @@ module.exports = async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  const { email, storeName, storeUrl, reviewUrl } = req.body || {};
-  if (!email)     return res.status(400).json({ error: 'email is required' });
+  const { email, storeName, storeUrl, reviewUrl, tier } = req.body || {};
   if (!storeName) return res.status(400).json({ error: 'storeName is required' });
+
+  const validTiers = ['mini', 'pro', 'max'];
+  const resolvedTier = validTiers.includes(tier) ? tier : 'mini';
 
   const apiKey   = generateApiKey();
   const keyHash  = hashApiKey(apiKey);
@@ -28,11 +30,11 @@ module.exports = async function handler(req, res) {
 
   await db.collection('tenants').doc(tenantId).set({
     tenantId,
-    email,
+    email:     email     || '',
     storeName,
     storeUrl:  storeUrl  || '',
     reviewUrl: reviewUrl || '',
-    tier:      'mini',
+    tier:      resolvedTier,
     createdAt: now,
   });
 

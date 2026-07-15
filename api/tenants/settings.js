@@ -3,7 +3,8 @@
 const { db }            = require('../_lib/firebase-admin');
 const { requireTenant } = require('../_lib/auth');
 
-const ALLOWED_FIELDS = ['storeName', 'storeUrl', 'reviewUrl'];
+const ALLOWED_FIELDS    = ['storeName', 'storeUrl', 'reviewUrl'];
+const MAX_ONLY_FIELDS   = ['customFrom'];
 
 module.exports = async function handler(req, res) {
   const tenantId = await requireTenant(req, res);
@@ -29,6 +30,19 @@ module.exports = async function handler(req, res) {
 
     for (const field of ALLOWED_FIELDS) {
       if (body[field] !== undefined) updates[field] = body[field];
+    }
+
+    // customFrom is Max-tier only
+    const tenantSnap = await tenantRef.get();
+    const tier = (tenantSnap.data() || {}).tier || 'mini';
+
+    for (const field of MAX_ONLY_FIELDS) {
+      if (body[field] !== undefined) {
+        if (tier !== 'max') {
+          return res.status(403).json({ error: `'${field}' requires the Max tier` });
+        }
+        updates[field] = body[field];
+      }
     }
 
     if (body.promoConfig) {

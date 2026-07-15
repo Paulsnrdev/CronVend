@@ -1,6 +1,6 @@
 # CronVend
 
-Scheduled email sequences that recover unpaid orders, follow up after delivery, and upsell customers on autopilot.
+Scheduled email sequences that recover unpaid orders, follow up after delivery, and upsell customers — on autopilot.
 
 Built for multi-tenant SaaS: any e-commerce store can plug in via webhook and CronVend handles the rest.
 

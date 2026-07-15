@@ -1,6 +1,6 @@
 'use strict';
 
-function upsellHtml({ customerName, storeName, storeUrl, promoCode, discountPct, expiresAt, aiParagraph }) {
+function upsellHtml({ customerName, storeName, storeUrl, promoCode, discountPct, expiresAt, aiParagraph, unsubscribeUrl }) {
   const expiryLabel = expiresAt
     ? new Date(expiresAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
     : '';
@@ -35,8 +35,8 @@ function upsellHtml({ customerName, storeName, storeUrl, promoCode, discountPct,
             Shop Now
           </a>
           <p style="margin:24px 0 0;color:#999;font-size:13px;line-height:1.5">
-            You're receiving this because you've shopped with us before.
-            <a href="#" style="color:#999">Unsubscribe</a>
+            You're receiving this because you've shopped with us before.<br>
+            <a href="${unsubscribeUrl}" style="color:#bbb;font-size:12px">Unsubscribe from follow-up emails</a>
           </p>
         </td></tr>
       </table>

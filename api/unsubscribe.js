@@ -1,0 +1,57 @@
+'use strict';
+
+const { db } = require('./_lib/firebase-admin');
+
+module.exports = async function handler(req, res) {
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+
+  const { token } = req.query;
+  if (!token) return res.status(400).send(page('Invalid link', 'This unsubscribe link is invalid or missing.'));
+
+  const tokenSnap = await db.collection('unsubscribeTokens').doc(token).get();
+  if (!tokenSnap.exists) {
+    return res.status(404).send(page('Already unsubscribed', "You're not subscribed to any follow-up emails, or this link has already been used."));
+  }
+
+  const { tenantId, followUpId } = tokenSnap.data();
+
+  await db.collection('tenants').doc(tenantId)
+    .collection('followUps').doc(followUpId)
+    .update({ optedOut: true, optedOutAt: new Date().toISOString() });
+
+  // Token is single-use — delete it after use
+  await tokenSnap.ref.delete();
+
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  return res.status(200).send(page(
+    "You've been unsubscribed",
+    "You won't receive any more follow-up emails for this order. If this was a mistake, contact the store directly.",
+  ));
+};
+
+function page(title, message) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>${title}</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="min-height:100vh;background:#f4f4f4">
+    <tr><td align="center" valign="middle" style="padding:48px 16px">
+      <table width="480" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;overflow:hidden;max-width:480px">
+        <tr><td style="background:#111;padding:24px 32px">
+          <span style="color:#fff;font-size:18px;font-weight:700">CronVend</span>
+        </td></tr>
+        <tr><td style="padding:40px 32px;text-align:center">
+          <p style="font-size:40px;margin:0 0 16px">✓</p>
+          <h1 style="margin:0 0 12px;font-size:22px;color:#111">${title}</h1>
+          <p style="margin:0;color:#555;line-height:1.6;font-size:15px">${message}</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
