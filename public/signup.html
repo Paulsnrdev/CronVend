@@ -50,7 +50,7 @@
     /* ── Plan cards ── */
     .plans {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 12px;
       margin-bottom: 32px;
     }
@@ -194,6 +194,9 @@
     .trust span { display: flex; align-items: center; gap: 5px; }
 
     /* ── Responsive ── */
+    @media (max-width: 720px) {
+      .plans { grid-template-columns: repeat(2, 1fr); }
+    }
     @media (max-width: 560px) {
       .plans { grid-template-columns: 1fr; }
       .popular-badge { top: -11px; }
@@ -214,6 +217,18 @@
 
   <!-- Plan selection -->
   <div class="plans">
+
+    <div class="plan" id="plan-free" onclick="selectPlan('free')">
+      <div class="plan-name">Free</div>
+      <div class="plan-price"><sup>$</sup>0</div>
+      <div class="plan-mo">/ month</div>
+      <ul class="plan-features">
+        <li>10 emails per cron run</li>
+        <li>1-hour payment reminder</li>
+        <li>Opt-out compliance</li>
+        <li>Webhook integration</li>
+      </ul>
+    </div>
 
     <div class="plan" id="plan-mini" onclick="selectPlan('mini')">
       <div class="plan-name">Mini</div>
@@ -291,6 +306,8 @@
     document.querySelectorAll('.plan').forEach(el => el.classList.remove('selected'));
     document.getElementById('plan-' + tier).classList.add('selected');
     selectedPlan = tier;
+    const btn = document.getElementById('submit-btn');
+    btn.textContent = tier === 'free' ? 'Create free account →' : 'Continue to payment →';
   }
 
   async function handleSubmit() {
@@ -321,8 +338,8 @@
         return;
       }
 
-      // Redirect to Flutterwave checkout
-      window.location.href = data.link;
+      // Free tier: no checkout needed
+      window.location.href = data.free ? (data.redirect || '/signup-success.html') : data.link;
 
     } catch (err) {
       showError('Network error. Please check your connection and try again.');

@@ -89,6 +89,7 @@ async function runAwaitingPayment({ tenantId, tenant, now, cap }) {
     const done  = order.awaitingReminders || {};
 
     for (const stage of AWAITING_STAGES) {
+      if (!can(tier, 'awaitingPaymentFull') && stage.key !== 'h1') continue;
       if (age < stage.ms || done[stage.key]) continue;
 
       const { subject, html } = awaitingPaymentHtml({
@@ -136,7 +137,7 @@ async function runFollowUps({ tenantId, tenant, now, cap }) {
     const unsubscribeUrl = `${baseUrl}/api/unsubscribe?token=${fu.unsubscribeToken}`;
 
     // day 3 — satisfaction check-in
-    if (age >= THREE_DAYS && !fu.day3) {
+    if (age >= THREE_DAYS && !fu.day3 && can(tier, 'followUpDay3')) {
       const { subject, html } = satisfactionHtml({
         customerName: fu.customerName,
         orderRef:     fu.orderRef || doc.id,
@@ -153,7 +154,7 @@ async function runFollowUps({ tenantId, tenant, now, cap }) {
     }
 
     // day 6 — review request
-    if (age >= SIX_DAYS && fu.day3 && !fu.day6) {
+    if (age >= SIX_DAYS && fu.day3 && !fu.day6 && can(tier, 'followUpDay6')) {
       const { subject, html } = reviewRequestHtml({
         customerName: fu.customerName,
         orderRef:     fu.orderRef || doc.id,

@@ -1,38 +1,51 @@
 'use strict';
 
 const FEATURES = {
+  free: {
+    awaitingPayment:     true,
+    awaitingPaymentFull: false, // only the 1-hour reminder; no 12h/24h stages
+    followUpDay3:        false,
+    followUpDay6:        false,
+    followUpDay8:        false,
+    aiUpsellCopy:        false,
+    promoCodes:          false,
+    customSenderDomain:  false,
+  },
   mini: {
-    awaitingPayment:    true,
-    followUpDay3:       true,
-    followUpDay6:       true,
-    followUpDay8:       false,
-    aiUpsellCopy:       false,
-    promoCodes:         false,
-    customSenderDomain: false,
+    awaitingPayment:     true,
+    awaitingPaymentFull: true,
+    followUpDay3:        true,
+    followUpDay6:        true,
+    followUpDay8:        false,
+    aiUpsellCopy:        false,
+    promoCodes:          false,
+    customSenderDomain:  false,
   },
   pro: {
-    awaitingPayment:    true,
-    followUpDay3:       true,
-    followUpDay6:       true,
-    followUpDay8:       true,
-    aiUpsellCopy:       true,
-    promoCodes:         true,
-    customSenderDomain: false,
+    awaitingPayment:     true,
+    awaitingPaymentFull: true,
+    followUpDay3:        true,
+    followUpDay6:        true,
+    followUpDay8:        true,
+    aiUpsellCopy:        true,
+    promoCodes:          true,
+    customSenderDomain:  false,
   },
   max: {
-    awaitingPayment:    true,
-    followUpDay3:       true,
-    followUpDay6:       true,
-    followUpDay8:       true,
-    aiUpsellCopy:       true,
-    promoCodes:         true,
-    customSenderDomain: true,
+    awaitingPayment:     true,
+    awaitingPaymentFull: true,
+    followUpDay3:        true,
+    followUpDay6:        true,
+    followUpDay8:        true,
+    aiUpsellCopy:        true,
+    promoCodes:          true,
+    customSenderDomain:  true,
   },
 };
 
 // Maximum emails a single tenant may send in one hourly cron run.
-// Prevents a tenant with thousands of orders from exhausting shared Resend quota.
 const EMAIL_CAPS = {
+  free: 10,
   mini: 50,
   pro:  200,
   max:  1000,
