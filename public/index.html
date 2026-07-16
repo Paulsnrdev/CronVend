@@ -53,6 +53,9 @@
   .nav-links { display: flex; align-items: center; gap: 28px; list-style: none; }
   .nav-links a { color: var(--muted2); font-size: 14px; text-decoration: none; transition: color .15s; }
   .nav-links a:hover { color: var(--text); }
+  .nav-actions { display: flex; align-items: center; gap: 20px; }
+  .nav-signin { color: var(--muted2); font-size: 14px; text-decoration: none; transition: color .15s; }
+  .nav-signin:hover { color: var(--text); }
   .nav-cta {
     background: var(--accent); color: #fff; font-size: 13px; font-weight: 700;
     padding: 8px 18px; border-radius: 8px; text-decoration: none;
@@ -405,9 +408,11 @@
     <li><a href="#how-it-works">How it works</a></li>
     <li><a href="#features">Features</a></li>
     <li><a href="#pricing">Pricing</a></li>
-    <li><a href="/dashboard.html">Dashboard</a></li>
   </ul>
-  <a class="nav-cta" href="#pricing">Get started</a>
+  <div class="nav-actions">
+    <a class="nav-signin" href="/dashboard.html">Sign in</a>
+    <a class="nav-cta" href="#pricing">Sign up</a>
+  </div>
 </nav>
 
 <!-- Hero -->
