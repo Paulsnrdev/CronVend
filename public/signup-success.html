@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>You're all set — CronVend</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: #090b12; color: #dde3f2;
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    padding: 24px; text-align: center;
+  }
+  .card { max-width: 440px; }
+  .check {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: rgba(72,187,120,.12); display: flex; align-items: center; justify-content: center;
+    font-size: 28px; margin: 0 auto 24px;
+  }
+  h1 { font-size: 26px; font-weight: 800; letter-spacing: -.02em; margin-bottom: 12px; color: #eef2ff; }
+  p { font-size: 15px; color: #9aa0b8; line-height: 1.6; margin-bottom: 28px; }
+  a.btn {
+    display: inline-block; background: #6c63ff; color: #fff; text-decoration: none;
+    font-size: 14px; font-weight: 700; padding: 12px 24px; border-radius: 10px;
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="check">✓</div>
+    <h1>Payment received</h1>
+    <p>Your CronVend subscription is now active. We've emailed your API key and webhook setup instructions to the address you signed up with — check your inbox to connect your store.</p>
+    <a class="btn" href="/">Back to CronVend</a>
+  </div>
+</body>
+</html>
