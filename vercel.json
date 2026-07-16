@@ -1,9 +1,15 @@
 {
   "version": 2,
   "functions": {
-    "api/**/*.js": {
-      "memory": 256,
-      "maxDuration": 60
-    }
-  }
+    "api/*.js": { "memory": 256, "maxDuration": 60 },
+    "api/admin/*.js": { "memory": 256, "maxDuration": 60 },
+    "api/billing/*.js": { "memory": 256, "maxDuration": 60 },
+    "api/cron/*.js": { "memory": 256, "maxDuration": 60 },
+    "api/dashboard/*.js": { "memory": 256, "maxDuration": 60 },
+    "api/tenants/*.js": { "memory": 256, "maxDuration": 60 },
+    "api/webhook/*.js": { "memory": 256, "maxDuration": 60 }
+  },
+  "rewrites": [
+    { "source": "/api/unsubscribe", "destination": "/api/optout" }
+  ]
 }

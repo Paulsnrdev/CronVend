@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CronVend — Email Automation for E-commerce</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #090b12;
+    --surface:   #111420;
+    --surface2:  #181c2e;
+    --border:    #1e2236;
+    --border2:   #252a40;
+    --accent:    #6c63ff;
+    --accent-lo: rgba(108,99,255,.12);
+    --teal:      #00d4aa;
+    --teal-lo:   rgba(0,212,170,.10);
+    --text:      #dde3f2;
+    --muted:     #6b7491;
+    --muted2:    #9aa0b8;
+    --danger:    #f56565;
+    --success:   #48bb78;
+    --warn:      #ed8936;
+    --radius:    14px;
+    --r-sm:      8px;
+    --nav-h:     64px;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Nav ── */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    height: var(--nav-h);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 40px;
+    background: rgba(9,11,18,.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+  .logo { font-size: 20px; font-weight: 800; letter-spacing: -.6px; color: var(--text); text-decoration: none; }
+  .logo em { color: var(--accent); font-style: normal; }
+  .nav-links { display: flex; align-items: center; gap: 28px; list-style: none; }
+  .nav-links a { color: var(--muted2); font-size: 14px; text-decoration: none; transition: color .15s; }
+  .nav-links a:hover { color: var(--text); }
+  .nav-cta {
+    background: var(--accent); color: #fff; font-size: 13px; font-weight: 700;
+    padding: 8px 18px; border-radius: 8px; text-decoration: none;
+    transition: opacity .15s; letter-spacing: .01em;
+  }
+  .nav-cta:hover { opacity: .88; }
+
+  /* ── Hero ── */
+  .hero {
+    min-height: calc(100vh - var(--nav-h));
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    gap: 48px;
+    padding: 80px 40px;
+    max-width: 1180px;
+    margin: 0 auto;
+  }
+  .hero-left { max-width: 560px; }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: var(--accent-lo); border: 1px solid rgba(108,99,255,.25);
+    color: #a09bf8; font-size: 12px; font-weight: 600; letter-spacing: .06em;
+    text-transform: uppercase; padding: 5px 12px; border-radius: 20px;
+    margin-bottom: 24px;
+  }
+  .eyebrow-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent); box-shadow: 0 0 8px var(--accent);
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--accent); }
+    50%       { opacity: .5; box-shadow: 0 0 3px var(--accent); }
+  }
+  h1 {
+    font-size: clamp(36px, 5vw, 58px);
+    font-weight: 800;
+    line-height: 1.08;
+    letter-spacing: -.04em;
+    text-wrap: balance;
+    margin-bottom: 20px;
+    color: #eef2ff;
+  }
+  h1 .hl {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--teal) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero-sub {
+    font-size: 18px;
+    color: var(--muted2);
+    line-height: 1.65;
+    margin-bottom: 36px;
+    text-wrap: balance;
+    max-width: 480px;
+  }
+  .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  .btn-primary {
+    background: var(--accent); color: #fff;
+    font-size: 15px; font-weight: 700; letter-spacing: .01em;
+    padding: 13px 26px; border-radius: 10px;
+    text-decoration: none; border: none; cursor: pointer;
+    transition: opacity .15s, transform .1s;
+    display: inline-block;
+  }
+  .btn-primary:hover { opacity: .9; transform: translateY(-1px); }
+  .btn-ghost {
+    color: var(--muted2); font-size: 14px; text-decoration: none;
+    display: flex; align-items: center; gap: 6px;
+    transition: color .15s;
+  }
+  .btn-ghost:hover { color: var(--text); }
+  .hero-trust {
+    margin-top: 28px; font-size: 13px; color: var(--muted);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .hero-trust::before {
+    content: ''; display: inline-block;
+    width: 14px; height: 14px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%2348bb78'%3E%3Cpath fill-rule='evenodd' d='M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z' clip-rule='evenodd'/%3E%3C/svg%3E") center/contain no-repeat;
+  }
+
+  /* ── Live feed widget ── */
+  .hero-right { position: relative; }
+  .widget {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 32px 80px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.04);
+  }
+  .widget-titlebar {
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot.r { background: #f56565; } .dot.y { background: #ed8936; } .dot.g { background: #48bb78; }
+  .widget-title { font-size: 12px; color: var(--muted); margin-left: 4px; font-weight: 500; }
+  .widget-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; }
+
+  .feed-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: 8px;
+    font-size: 12.5px; font-family: 'Menlo', 'Consolas', monospace;
+    opacity: 0; transform: translateY(6px);
+    animation: feed-in .35s ease forwards;
+  }
+  .feed-row:hover { background: var(--surface2); }
+  @keyframes feed-in { to { opacity: 1; transform: translateY(0); } }
+  .feed-time { color: var(--muted); min-width: 52px; font-size: 11px; }
+  .feed-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .feed-dot.sent    { background: var(--accent); box-shadow: 0 0 5px var(--accent); }
+  .feed-dot.opened  { background: var(--teal);   box-shadow: 0 0 5px var(--teal); }
+  .feed-dot.paid    { background: var(--success); box-shadow: 0 0 5px var(--success); }
+  .feed-dot.queued  { background: var(--muted); }
+  .feed-dot.bounced { background: var(--danger); }
+  .feed-text { color: var(--text); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .feed-badge {
+    font-size: 10px; font-weight: 700; letter-spacing: .04em;
+    padding: 2px 7px; border-radius: 4px; flex-shrink: 0; font-family: inherit;
+  }
+  .feed-badge.sent    { background: var(--accent-lo); color: #a09bf8; }
+  .feed-badge.opened  { background: var(--teal-lo); color: var(--teal); }
+  .feed-badge.paid    { background: rgba(72,187,120,.12); color: var(--success); }
+  .feed-badge.queued  { background: rgba(107,116,145,.12); color: var(--muted2); }
+  .feed-badge.bounced { background: rgba(245,101,101,.12); color: var(--danger); }
+
+  .widget-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; border-top: 1px solid var(--border); }
+  .wstat { padding: 14px 16px; text-align: center; border-right: 1px solid var(--border); }
+  .wstat:last-child { border-right: none; }
+  .wstat-val { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .wstat-val.p { color: var(--accent); }
+  .wstat-val.t { color: var(--teal); }
+  .wstat-val.g { color: var(--success); }
+  .wstat-lbl { font-size: 11px; color: var(--muted); margin-top: 2px; letter-spacing: .03em; }
+
+  /* ── Social proof bar ── */
+  .proof-bar {
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 18px 40px;
+    display: flex; align-items: center; justify-content: center;
+    gap: 40px; flex-wrap: wrap;
+    background: var(--surface);
+  }
+  .proof-item { display: flex; align-items: center; gap: 10px; }
+  .proof-num { font-size: 22px; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; }
+  .proof-label { font-size: 13px; color: var(--muted); line-height: 1.3; }
+  .proof-divider { width: 1px; height: 32px; background: var(--border2); }
+
+  /* ── Section ── */
+  section { padding: 96px 40px; max-width: 1180px; margin: 0 auto; }
+  .section-eyebrow {
+    font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 12px;
+  }
+  .section-title {
+    font-size: clamp(28px, 4vw, 40px); font-weight: 800; letter-spacing: -.03em;
+    color: #eef2ff; text-wrap: balance; margin-bottom: 14px;
+  }
+  .section-sub { font-size: 17px; color: var(--muted2); line-height: 1.65; max-width: 540px; text-wrap: balance; }
+  .section-header { margin-bottom: 56px; }
+
+  /* ── How it works ── */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; }
+  .step {
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: var(--radius); padding: 28px 24px;
+    transition: border-color .2s;
+  }
+  .step:hover { border-color: rgba(108,99,255,.4); }
+  .step-num {
+    font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+  }
+  .step-num::after { content: ''; flex: 1; height: 1px; background: var(--border2); }
+  .step h3 { font-size: 17px; font-weight: 700; margin-bottom: 10px; color: #eef2ff; }
+  .step p { font-size: 14px; color: var(--muted2); line-height: 1.65; }
+  .step-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; margin-bottom: 16px;
+  }
+  .step-icon.v { background: var(--accent-lo); }
+  .step-icon.t { background: var(--teal-lo); }
+  .step-icon.g { background: rgba(72,187,120,.1); }
+
+  /* ── Features ── */
+  .features-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+  .feat {
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: var(--radius); padding: 28px 24px;
+    display: flex; gap: 18px; align-items: flex-start;
+    transition: border-color .2s;
+  }
+  .feat:hover { border-color: rgba(108,99,255,.3); }
+  .feat-icon {
+    width: 42px; height: 42px; flex-shrink: 0; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; font-size: 20px;
+    background: var(--accent-lo);
+  }
+  .feat-icon.t { background: var(--teal-lo); }
+  .feat h3 { font-size: 15px; font-weight: 700; margin-bottom: 6px; color: #eef2ff; }
+  .feat p { font-size: 13.5px; color: var(--muted2); line-height: 1.6; }
+
+  /* ── Pricing ── */
+  .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; align-items: start; }
+  .plan {
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: var(--radius); padding: 32px 28px;
+    position: relative; transition: border-color .2s;
+  }
+  .plan:hover { border-color: rgba(108,99,255,.3); }
+  .plan.featured {
+    border-color: var(--accent);
+    background: linear-gradient(160deg, rgba(108,99,255,.08) 0%, var(--surface) 60%);
+    box-shadow: 0 0 40px rgba(108,99,255,.12);
+  }
+  .plan-badge {
+    position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+    background: var(--accent); color: #fff;
+    font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    padding: 3px 12px; border-radius: 20px; white-space: nowrap;
+  }
+  .plan-name { font-size: 14px; font-weight: 700; color: var(--muted2); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 12px; }
+  .plan-price { display: flex; align-items: baseline; gap: 4px; margin-bottom: 8px; }
+  .plan-price .dollar { font-size: 24px; font-weight: 700; color: var(--muted2); }
+  .plan-price .amount { font-size: 52px; font-weight: 800; letter-spacing: -.04em; color: #eef2ff; font-variant-numeric: tabular-nums; }
+  .plan-price .period { font-size: 15px; color: var(--muted); }
+  .plan-tagline { font-size: 13.5px; color: var(--muted2); margin-bottom: 24px; line-height: 1.5; }
+  .plan-divider { height: 1px; background: var(--border2); margin-bottom: 20px; }
+  .plan-features { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+  .plan-features li { display: flex; align-items: flex-start; gap: 10px; font-size: 13.5px; color: var(--muted2); }
+  .plan-features li::before {
+    content: ''; width: 16px; height: 16px; flex-shrink: 0; margin-top: 1px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%2348bb78'%3E%3Cpath fill-rule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z' clip-rule='evenodd'/%3E%3C/svg%3E") center/contain no-repeat;
+  }
+  .plan-cta {
+    display: block; width: 100%; text-align: center;
+    padding: 12px; border-radius: 10px;
+    font-size: 14px; font-weight: 700; text-decoration: none; transition: opacity .15s;
+  }
+  .plan-cta.primary { background: var(--accent); color: #fff; }
+  .plan-cta.ghost { background: var(--surface2); color: var(--text); border: 1px solid var(--border2); }
+  .plan-cta:hover { opacity: .85; }
+
+  /* ── CTA section ── */
+  .cta-section {
+    padding: 80px 40px; text-align: center;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .cta-section .section-title { margin: 0 auto 14px; max-width: 600px; }
+  .cta-section .section-sub { margin: 0 auto 32px; }
+  .cta-center { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; align-items: center; }
+
+  /* ── Footer ── */
+  footer {
+    padding: 40px;
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;
+    border-top: 1px solid var(--border);
+    max-width: 1180px; margin: 0 auto;
+  }
+  .footer-logo { font-size: 16px; font-weight: 800; letter-spacing: -.5px; }
+  .footer-logo em { color: var(--accent); font-style: normal; }
+  .footer-links { display: flex; gap: 24px; }
+  .footer-links a { color: var(--muted); font-size: 13px; text-decoration: none; transition: color .15s; }
+  .footer-links a:hover { color: var(--text); }
+  .footer-copy { color: var(--muted); font-size: 13px; }
+
+  /* ── Code snippet ── */
+  .code-block {
+    background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: 10px; padding: 16px 20px;
+    font-family: 'Menlo', 'Consolas', monospace; font-size: 12.5px;
+    color: var(--muted2); overflow-x: auto; margin-top: 20px; line-height: 1.7;
+  }
+  .code-block .ck { color: #6c63ff; }
+  .code-block .cs { color: #00d4aa; }
+  .code-block .cn { color: #ed8936; }
+
+  @media (max-width: 768px) {
+    nav { padding: 0 20px; }
+    nav .nav-links { display: none; }
+    .hero { grid-template-columns: 1fr; padding: 48px 20px; min-height: auto; }
+    .hero-right { display: none; }
+    section { padding: 64px 20px; }
+    .steps { grid-template-columns: 1fr; }
+    .features-grid { grid-template-columns: 1fr; }
+    .pricing-grid { grid-template-columns: 1fr; }
+    .proof-bar { padding: 18px 20px; gap: 24px; }
+    .proof-divider { display: none; }
+    footer { padding: 32px 20px; flex-direction: column; align-items: flex-start; }
+    .cta-section { padding: 60px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav>
+  <a class="logo" href="#">Cron<em>Vend</em></a>
+  <ul class="nav-links">
+    <li><a href="#how-it-works">How it works</a></li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+    <li><a href="/dashboard.html">Dashboard</a></li>
+  </ul>
+  <a class="nav-cta" href="#pricing">Get started</a>
+</nav>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-left">
+    <div class="eyebrow">
+      <div class="eyebrow-dot"></div>
+      Automated · Multi-tenant · E-commerce
+    </div>
+    <h1>Your store recovers abandoned orders <span class="hl">while you sleep</span></h1>
+    <p class="hero-sub">
+      CronVend sends perfectly timed follow-up emails when customers don't complete checkout — automatically, on schedule, without you lifting a finger.
+    </p>
+    <div class="hero-actions">
+      <a class="btn-primary" href="#pricing">Start recovering revenue</a>
+      <a class="btn-ghost" href="#how-it-works">See how it works →</a>
+    </div>
+    <div class="hero-trust">No credit card required to start · Cancel anytime</div>
+  </div>
+
+  <div class="hero-right">
+    <div class="widget">
+      <div class="widget-titlebar">
+        <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+        <span class="widget-title">cronvend · live activity</span>
+      </div>
+      <div class="widget-body" id="feed-body"></div>
+      <div class="widget-stats">
+        <div class="wstat">
+          <div class="wstat-val p" id="ws-sent">0</div>
+          <div class="wstat-lbl">Emails sent</div>
+        </div>
+        <div class="wstat">
+          <div class="wstat-val t" id="ws-open">0</div>
+          <div class="wstat-lbl">Opened</div>
+        </div>
+        <div class="wstat">
+          <div class="wstat-val g" id="ws-paid">0</div>
+          <div class="wstat-lbl">Recovered</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Proof bar -->
+<div class="proof-bar">
+  <div class="proof-item">
+    <div class="proof-num">3×</div>
+    <div class="proof-label">average revenue<br>recovery uplift</div>
+  </div>
+  <div class="proof-divider"></div>
+  <div class="proof-item">
+    <div class="proof-num">68%</div>
+    <div class="proof-label">of abandoned carts<br>are never followed up</div>
+  </div>
+  <div class="proof-divider"></div>
+  <div class="proof-item">
+    <div class="proof-num">&lt;5 min</div>
+    <div class="proof-label">setup with one<br>webhook integration</div>
+  </div>
+  <div class="proof-divider"></div>
+  <div class="proof-item">
+    <div class="proof-num">$0</div>
+    <div class="proof-label">per email — flat<br>monthly pricing</div>
+  </div>
+</div>
+
+<!-- How it works -->
+<section id="how-it-works">
+  <div class="section-header">
+    <div class="section-eyebrow">How it works</div>
+    <div class="section-title">Up and running in three steps</div>
+    <p class="section-sub">One webhook. No SDKs. No servers to manage. CronVend handles the scheduling, sequencing, and sending.</p>
+  </div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">Step 01</div>
+      <div class="step-icon v">🔗</div>
+      <h3>Connect your store</h3>
+      <p>Point your order management system at your CronVend webhook endpoint. Send order events with a single HTTP POST — no SDK required.</p>
+      <div class="code-block">
+        <span class="ck">POST</span> /api/webhook/orders<br>
+        <span class="cn">x-api-key:</span> <span class="cs">cv_live_…</span><br><br>
+        &#123; <span class="ck">"event"</span>: <span class="cs">"order.pending"</span>,<br>
+        &nbsp; <span class="ck">"orderId"</span>: <span class="cs">"ORD-7821"</span>,<br>
+        &nbsp; <span class="ck">"email"</span>: <span class="cs">"jane@shop.co"</span> &#125;
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">Step 02</div>
+      <div class="step-icon t">⏱️</div>
+      <h3>Sequences run on schedule</h3>
+      <p>CronVend's cron engine wakes every hour. For each pending order, it automatically sends payment reminders, follow-ups, and promo codes on a tested cadence.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">Step 03</div>
+      <div class="step-icon g">💰</div>
+      <h3>Watch orders recover</h3>
+      <p>When a customer completes payment, CronVend detects it and stops the sequence instantly — no extra emails, no awkward double-sends.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section id="features" style="padding-top:0;">
+  <div class="section-header">
+    <div class="section-eyebrow">Features</div>
+    <div class="section-title">Everything included, nothing to configure</div>
+  </div>
+  <div class="features-grid">
+    <div class="feat">
+      <div class="feat-icon">📅</div>
+      <div>
+        <h3>Timed email sequences</h3>
+        <p>Payment reminders at 1 h, 24 h, and 72 h. Review follow-ups after delivery. Promo offers for stubborn holdouts. Tuned timing, out of the box.</p>
+      </div>
+    </div>
+    <div class="feat">
+      <div class="feat-icon t">🎟️</div>
+      <div>
+        <h3>Automatic promo codes</h3>
+        <p>CronVend generates unique discount codes per order and embeds them in emails. Redeemed codes are tracked so you know exactly what converted.</p>
+      </div>
+    </div>
+    <div class="feat">
+      <div class="feat-icon">🛑</div>
+      <div>
+        <h3>Instant opt-out compliance</h3>
+        <p>Every email includes a one-click unsubscribe. Opt-outs are stored immediately — that customer never receives another email from your sequence.</p>
+      </div>
+    </div>
+    <div class="feat">
+      <div class="feat-icon t">📊</div>
+      <div>
+        <h3>Delivery event tracking</h3>
+        <p>Sent, delivered, opened, clicked, bounced, complained — every event is recorded per order and visible in your dashboard in real time.</p>
+      </div>
+    </div>
+    <div class="feat">
+      <div class="feat-icon">🏢</div>
+      <div>
+        <h3>Multi-tenant by design</h3>
+        <p>Built for agencies and resellers. Each client gets a fully isolated workspace, their own API key, and their own sending quota — completely separate.</p>
+      </div>
+    </div>
+    <div class="feat">
+      <div class="feat-icon t">🔒</div>
+      <div>
+        <h3>GDPR data erasure</h3>
+        <p>A single API call deletes all stored data for a tenant — orders, events, rate limits, API keys — in full compliance with right-to-erasure requests.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Pricing -->
+<section id="pricing" style="padding-top:0;">
+  <div class="section-header" style="text-align:center;">
+    <div class="section-eyebrow">Pricing</div>
+    <div class="section-title">Simple, flat pricing</div>
+    <p class="section-sub" style="margin:0 auto;">No per-email fees. No seat limits. Pay once a month and send as many sequences as your plan allows.</p>
+  </div>
+  <div class="pricing-grid">
+    <div class="plan">
+      <div class="plan-name">Mini</div>
+      <div class="plan-price">
+        <span class="dollar">$</span><span class="amount">7</span><span class="period">/mo</span>
+      </div>
+      <p class="plan-tagline">For small stores just getting started with email recovery.</p>
+      <div class="plan-divider"></div>
+      <ul class="plan-features">
+        <li>50 emails per cron run</li>
+        <li>Payment reminder sequence</li>
+        <li>Opt-out compliance</li>
+        <li>Basic delivery tracking</li>
+        <li>Webhook integration</li>
+      </ul>
+      <a class="plan-cta ghost" href="mailto:jibadepaul@gmail.com?subject=CronVend Mini Plan">Get Mini</a>
+    </div>
+
+    <div class="plan featured">
+      <div class="plan-badge">Most popular</div>
+      <div class="plan-name">Pro</div>
+      <div class="plan-price">
+        <span class="dollar">$</span><span class="amount">19</span><span class="period">/mo</span>
+      </div>
+      <p class="plan-tagline">For growing stores that need the full follow-up sequence.</p>
+      <div class="plan-divider"></div>
+      <ul class="plan-features">
+        <li>200 emails per cron run</li>
+        <li>Full 3-email recovery sequence</li>
+        <li>Promo code generation</li>
+        <li>Review follow-up sequence</li>
+        <li>Full delivery event tracking</li>
+        <li>Dashboard analytics</li>
+      </ul>
+      <a class="plan-cta primary" href="mailto:jibadepaul@gmail.com?subject=CronVend Pro Plan">Get Pro</a>
+    </div>
+
+    <div class="plan">
+      <div class="plan-name">Max</div>
+      <div class="plan-price">
+        <span class="dollar">$</span><span class="amount">43</span><span class="period">/mo</span>
+      </div>
+      <p class="plan-tagline">For high-volume stores and multi-brand operators.</p>
+      <div class="plan-divider"></div>
+      <ul class="plan-features">
+        <li>1,000 emails per cron run</li>
+        <li>Everything in Pro</li>
+        <li>Priority email delivery</li>
+        <li>Multi-tenant sub-accounts</li>
+        <li>GDPR erasure API</li>
+        <li>White-label support</li>
+      </ul>
+      <a class="plan-cta ghost" href="mailto:jibadepaul@gmail.com?subject=CronVend Max Plan">Get Max</a>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<div class="cta-section">
+  <div class="section-title">Ready to recover more revenue?</div>
+  <p class="section-sub">Your first automated sequence can be live in under five minutes. No engineering team required.</p>
+  <div class="cta-center">
+    <a class="btn-primary" href="#pricing" style="font-size:16px;padding:14px 32px;">Choose a plan</a>
+    <a class="btn-ghost" href="mailto:jibadepaul@gmail.com" style="font-size:14px;">Questions? Email us →</a>
+  </div>
+</div>
+
+<!-- Footer -->
+<footer>
+  <div class="footer-logo">Cron<em>Vend</em></div>
+  <div class="footer-links">
+    <a href="/dashboard.html">Dashboard</a>
+    <a href="#pricing">Pricing</a>
+    <a href="mailto:jibadepaul@gmail.com">Contact</a>
+  </div>
+  <div class="footer-copy">© 2026 CronVend. All rights reserved.</div>
+</footer>
+
+<script>
+  const feedEvents = [
+    { type:'sent',    store:'Acme Store',   msg:'Payment reminder sent'     },
+    { type:'opened',  store:'Bolt Fashion', msg:'Email opened'              },
+    { type:'paid',    store:'Acme Store',   msg:'Order recovered!'          },
+    { type:'sent',    store:'NovaTech',     msg:'Follow-up #2 sent'         },
+    { type:'queued',  store:'Kenta Shop',   msg:'Promo code queued'         },
+    { type:'opened',  store:'NovaTech',     msg:'Promo email opened'        },
+    { type:'paid',    store:'Bolt Fashion', msg:'Order recovered!'          },
+    { type:'sent',    store:'Kenta Shop',   msg:'Payment reminder sent'     },
+    { type:'bounced', store:'Drift Wear',   msg:'Bounce — invalid address'  },
+    { type:'sent',    store:'Acme Store',   msg:'Review request sent'       },
+    { type:'opened',  store:'Kenta Shop',   msg:'Reminder opened'           },
+    { type:'paid',    store:'NovaTech',     msg:'Order recovered!'          },
+  ];
+
+  const feed = document.getElementById('feed-body');
+  let idx = 0, totalSent = 0, totalOpen = 0, totalPaid = 0;
+  const MAX = 6;
+
+  function ts() {
+    const d = new Date();
+    return [d.getHours(), d.getMinutes(), d.getSeconds()]
+      .map(n => n.toString().padStart(2,'0')).join(':');
+  }
+
+  function addRow(ev) {
+    const row = document.createElement('div');
+    row.className = 'feed-row';
+    row.innerHTML =
+      `<span class="feed-time">${ts()}</span>` +
+      `<span class="feed-dot ${ev.type}"></span>` +
+      `<span class="feed-text">${ev.store} · ${ev.msg}</span>` +
+      `<span class="feed-badge ${ev.type}">${ev.type}</span>`;
+    feed.insertBefore(row, feed.firstChild);
+    while (feed.children.length > MAX) feed.removeChild(feed.lastChild);
+
+    if (ev.type === 'sent')   document.getElementById('ws-sent').textContent = ++totalSent;
+    if (ev.type === 'opened') document.getElementById('ws-open').textContent = ++totalOpen;
+    if (ev.type === 'paid')   document.getElementById('ws-paid').textContent = ++totalPaid;
+  }
+
+  for (let i = 0; i < 5; i++) addRow(feedEvents[idx++ % feedEvents.length]);
+
+  (function tick() {
+    addRow(feedEvents[idx++ % feedEvents.length]);
+    setTimeout(tick, 1800 + Math.random() * 1200);
+  })();
+</script>
+</body>
+</html>
