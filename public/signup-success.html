@@ -1,37 +1,158 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>You're all set — CronVend</title>
-<style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-    background: #090b12; color: #dde3f2;
-    min-height: 100vh; display: flex; align-items: center; justify-content: center;
-    padding: 24px; text-align: center;
-  }
-  .card { max-width: 440px; }
-  .check {
-    width: 56px; height: 56px; border-radius: 50%;
-    background: rgba(72,187,120,.12); display: flex; align-items: center; justify-content: center;
-    font-size: 28px; margin: 0 auto 24px;
-  }
-  h1 { font-size: 26px; font-weight: 800; letter-spacing: -.02em; margin-bottom: 12px; color: #eef2ff; }
-  p { font-size: 15px; color: #9aa0b8; line-height: 1.6; margin-bottom: 28px; }
-  a.btn {
-    display: inline-block; background: #6c63ff; color: #fff; text-decoration: none;
-    font-size: 14px; font-weight: 700; padding: 12px 24px; border-radius: 10px;
-  }
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>You're in — CronVend</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #090b12;
+      --surface: #12151f;
+      --border:  #242838;
+      --accent:  #6c63ff;
+      --teal:    #00d4aa;
+      --text:    #e2e8f0;
+      --muted:   #7a8499;
+      --radius:  14px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px;
+      text-align: center;
+    }
+
+    .logo { font-size: 20px; font-weight: 700; letter-spacing: -.5px; text-decoration: none; color: var(--text); margin-bottom: 48px; display: block; }
+    .logo span { color: var(--accent); }
+
+    .check {
+      width: 72px; height: 72px;
+      background: rgba(0, 212, 170, .12);
+      border: 2px solid rgba(0, 212, 170, .3);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 28px;
+      font-size: 32px;
+    }
+
+    h1 { font-size: 28px; font-weight: 700; letter-spacing: -.5px; margin-bottom: 12px; }
+    .sub { color: var(--muted); font-size: 15px; line-height: 1.6; max-width: 420px; margin: 0 auto 40px; }
+
+    .steps {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      max-width: 440px;
+      width: 100%;
+      margin: 0 auto 32px;
+      text-align: left;
+    }
+    .steps-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 18px; }
+
+    .step { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 18px; }
+    .step:last-child { margin-bottom: 0; }
+    .step-num {
+      width: 26px; height: 26px; border-radius: 50%;
+      background: rgba(108, 99, 255, .15);
+      border: 1px solid rgba(108, 99, 255, .3);
+      color: var(--accent);
+      font-size: 12px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .step-body { font-size: 14px; line-height: 1.5; }
+    .step-body strong { color: var(--text); font-weight: 600; display: block; margin-bottom: 2px; }
+    .step-body span { color: var(--muted); font-size: 13px; }
+    .step-body code { font-family: Menlo, Consolas, monospace; font-size: 12px; color: var(--accent); }
+
+    .btn {
+      display: inline-block;
+      padding: 12px 28px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      border-radius: 9px;
+      text-decoration: none;
+      transition: opacity .15s;
+    }
+    .btn:hover { opacity: .85; }
+
+    .btn-ghost {
+      display: inline-block;
+      padding: 12px 28px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 9px;
+      text-decoration: none;
+      border: 1px solid var(--border);
+      margin-left: 10px;
+      transition: border-color .15s, color .15s;
+    }
+    .btn-ghost:hover { border-color: #3a3d52; color: var(--text); }
+
+    @media (max-width: 480px) {
+      h1 { font-size: 22px; }
+      .btn-ghost { margin-left: 0; margin-top: 10px; display: block; }
+    }
+  </style>
 </head>
 <body>
-  <div class="card">
-    <div class="check">✓</div>
-    <h1>Payment received</h1>
-    <p>Your CronVend subscription is now active. We've emailed your API key and webhook setup instructions to the address you signed up with — check your inbox to connect your store.</p>
-    <a class="btn" href="/">Back to CronVend</a>
+
+  <a href="/" class="logo">Cron<span>Vend</span></a>
+
+  <div class="check">✓</div>
+
+  <h1>Payment confirmed!</h1>
+  <p class="sub">Your CronVend account is being set up. Check your inbox — your API key is on its way.</p>
+
+  <div class="steps">
+    <div class="steps-title">What happens next</div>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <strong>Check your email</strong>
+        <span>Your API key has been sent to the address you signed up with. Check spam if it doesn't arrive within 2 minutes.</span>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <strong>Connect your store</strong>
+        <span>Point your order system at <code>/api/webhook/orders</code> and pass your API key in the <code>x-api-key</code> header.</span>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <strong>Watch it run</strong>
+        <span>CronVend automatically sends payment reminders and follow-up emails. Check your dashboard for live stats.</span>
+      </div>
+    </div>
   </div>
+
+  <div>
+    <a href="/dashboard.html" class="btn">Go to Dashboard →</a>
+    <a href="/" class="btn-ghost">Back to home</a>
+  </div>
+
 </body>
 </html>
