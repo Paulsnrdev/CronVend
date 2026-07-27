@@ -212,6 +212,7 @@
 
   /* ── Section ── */
   section { padding: 96px 40px; max-width: 1180px; margin: 0 auto; }
+  .tight-top { padding-top: 0; }
   .section-eyebrow {
     font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
     color: var(--accent); margin-bottom: 12px;
@@ -397,6 +398,12 @@
     .proof-divider { display: none; }
     footer { padding: 32px 20px; flex-direction: column; align-items: flex-start; }
     .cta-section { padding: 60px 20px; }
+    .tight-top { padding-top: 48px; }
+  }
+
+  @media (max-width: 600px) {
+    .pricing-grid { grid-template-columns: 1fr; }
+    .pricing-grid .plan:first-child { grid-column: auto; }
   }
 </style>
 </head>
@@ -519,7 +526,7 @@
 </section>
 
 <!-- Features -->
-<section id="features" style="padding-top:0;">
+<section id="features" class="tight-top">
   <div class="section-header">
     <div class="section-eyebrow">Features</div>
     <div class="section-title">Everything included, nothing to configure</div>
@@ -571,7 +578,7 @@
 </section>
 
 <!-- Pricing -->
-<section id="pricing" style="padding-top:0;">
+<section id="pricing" class="tight-top">
   <div class="section-header" style="text-align:center;">
     <div class="section-eyebrow">Pricing</div>
     <div class="section-title">Simple, flat pricing</div>
