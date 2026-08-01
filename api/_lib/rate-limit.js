@@ -11,16 +11,18 @@ const LIMITS = {
 };
 
 // Window keys are deterministic strings so counters are naturally scoped to their time window.
-// e.g. "tid123:min:2026-07-15-14-32" and "tid123:hr:2026-07-15-14"
-function windowKeys(tenantId) {
+// `scope` keeps different endpoints (webhook vs dashboard, etc.) on separate
+// budgets so one doesn't silently throttle the other for the same tenant.
+// e.g. "tid123:webhook:min:2026-07-15-14-32" and "tid123:webhook:hr:2026-07-15-14"
+function windowKeys(tenantId, scope) {
   const now = new Date();
   const pad = n => String(n).padStart(2, '0');
   const date = `${now.getUTCFullYear()}-${pad(now.getUTCMonth() + 1)}-${pad(now.getUTCDate())}`;
   const hour = `${date}-${pad(now.getUTCHours())}`;
   const min  = `${hour}-${pad(now.getUTCMinutes())}`;
   return {
-    minuteKey: `${tenantId}:min:${min}`,
-    hourKey:   `${tenantId}:hr:${hour}`,
+    minuteKey: `${tenantId}:${scope}:min:${min}`,
+    hourKey:   `${tenantId}:${scope}:hr:${hour}`,
     // TTLs: keep docs alive for 2x the window so stale reads still work
     minuteTtl: admin.firestore.Timestamp.fromMillis(Date.now() + 2  * 60   * 1000),
     hourTtl:   admin.firestore.Timestamp.fromMillis(Date.now() + 2  * 3600 * 1000),
@@ -32,9 +34,9 @@ function windowKeys(tenantId) {
 //
 // NOTE: Enable Firestore TTL on collection "rateLimits", field "expireAt"
 // in the Firebase console to auto-delete old counter docs.
-async function checkRateLimit(tenantId, tier) {
+async function checkRateLimit(tenantId, tier, scope = 'webhook') {
   const limits = LIMITS[tier] || LIMITS.mini;
-  const { minuteKey, hourKey, minuteTtl, hourTtl } = windowKeys(tenantId);
+  const { minuteKey, hourKey, minuteTtl, hourTtl } = windowKeys(tenantId, scope);
   const col = db.collection('rateLimits');
 
   let allowed = true;
