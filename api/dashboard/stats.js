@@ -1,7 +1,8 @@
 'use strict';
 
-const { db }            = require('../_lib/firebase-admin');
-const { requireTenant } = require('../_lib/auth');
+const { db }             = require('../_lib/firebase-admin');
+const { requireTenant }  = require('../_lib/auth');
+const { checkRateLimit } = require('../_lib/rate-limit');
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
@@ -10,6 +11,15 @@ module.exports = async function handler(req, res) {
   if (!tenantId) return;
 
   const base = db.collection('tenants').doc(tenantId);
+
+  const tenantDoc = await base.get();
+  const tier      = (tenantDoc.data() || {}).tier || 'mini';
+
+  const { allowed, reason, retryAfterSeconds } = await checkRateLimit(tenantId, tier, 'dashboard');
+  if (!allowed) {
+    res.setHeader('Retry-After', String(retryAfterSeconds));
+    return res.status(429).json({ error: reason });
+  }
 
   const [eventsSnap, promoSnap, ordersSnap, fuSnap] = await Promise.all([
     base.collection('events').get(),
