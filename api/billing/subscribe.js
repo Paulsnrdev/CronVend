@@ -267,7 +267,7 @@ async function createCheckoutLink({ tenantId, tier, email, name, secretKey }) {
   if (!planId) throw new Error(`${TIER_PLAN_ENV[tier]} env var not set`);
 
   const siteUrl = process.env.SITE_URL || '';
-  const txRef   = `${tenantId}-${Date.now()}`;
+  const txRef   = `CV-${tenantId}-${Date.now()}`;
 
   const payload = {
     tx_ref:       txRef,
